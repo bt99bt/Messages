@@ -83,6 +83,7 @@ class AutoForwardRulesAdapter(
 
     private fun buildRuleSummary(rule: AutoForwardRule): String {
         val matchType = when (rule.matchType) {
+            AutoForwardMatchType.ALL -> activity.getString(R.string.auto_forward_all_match)
             AutoForwardMatchType.KEYWORDS -> activity.getString(R.string.auto_forward_keyword_match)
             AutoForwardMatchType.REGEX -> activity.getString(R.string.auto_forward_regex_match)
         }

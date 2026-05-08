@@ -5,10 +5,8 @@ import android.content.Context
 import android.telephony.SmsManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import kotlinx.serialization.json.JsonPrimitive
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
-import kotlinx.serialization.json.putJsonArray
 import org.fossify.messages.extensions.autoForwardHistoryDB
 import org.fossify.messages.extensions.config
 import org.fossify.messages.extensions.subscriptionManagerCompat
@@ -52,6 +50,8 @@ class AutoForwardManager(private val context: Context) {
 
     private fun findMatch(rule: AutoForwardRule, body: String): MatchResult? {
         return when (rule.matchType) {
+            AutoForwardMatchType.ALL -> MatchResult(matchedText = body, captures = emptyList())
+
             AutoForwardMatchType.KEYWORDS -> {
                 rule.keywords
                     .map { it.trim() }
@@ -172,19 +172,18 @@ class AutoForwardManager(private val context: Context) {
         receivedAt: Long
     ) {
         try {
-            val payload = buildJsonObject {
-                put("sender", sender)
-                put("body", body)
-                put("receivedAt", receivedAt)
-                put("threadId", threadId)
-                put("messageId", messageId)
-                put("ruleId", rule.id)
-                put("ruleName", rule.name)
-                put("matchedText", matchResult.matchedText)
-                putJsonArray("captures") {
-                    matchResult.captures.forEach { add(JsonPrimitive(it)) }
-                }
-            }.toString()
+            val payload = buildFeishuTextPayload(
+                rule = rule,
+                matchResult = matchResult,
+                messageId = messageId,
+                threadId = threadId,
+                sender = sender,
+                body = body,
+                receivedAt = receivedAt
+            )
+            if (payload.toByteArray(Charsets.UTF_8).size > FEISHU_MAX_PAYLOAD_BYTES) {
+                throw IllegalStateException("Feishu payload exceeds 20 KB")
+            }
             postWebhook(rule.webhookUrl, payload)
             updateHistory(historyId, AutoForwardHistory.STATUS_SUCCESS, "", null)
         } catch (e: Exception) {
@@ -195,6 +194,43 @@ class AutoForwardManager(private val context: Context) {
                 usedSubscriptionId = null
             )
         }
+    }
+
+    private fun buildFeishuTextPayload(
+        rule: AutoForwardRule,
+        matchResult: MatchResult,
+        messageId: Long,
+        threadId: Long,
+        sender: String,
+        body: String,
+        receivedAt: Long
+    ): String {
+        val text = buildString {
+            appendLine("短信自动转发")
+            appendLine("规则：${rule.name}")
+            appendLine("发件人：$sender")
+            appendLine("接收时间：$receivedAt")
+            appendLine("会话 ID：$threadId")
+            appendLine("短信 ID：$messageId")
+            if (matchResult.matchedText.isNotEmpty()) {
+                appendLine("命中内容：${matchResult.matchedText}")
+            }
+            if (matchResult.captures.isNotEmpty()) {
+                appendLine("捕获组：${matchResult.captures.joinToString(", ")}")
+            }
+            appendLine()
+            append(body)
+        }
+
+        return buildJsonObject {
+            put("msg_type", "text")
+            put(
+                "content",
+                buildJsonObject {
+                    put("text", text)
+                }
+            )
+        }.toString()
     }
 
     @SuppressLint("MissingPermission")
@@ -253,5 +289,6 @@ class AutoForwardManager(private val context: Context) {
 
     companion object {
         private const val WEBHOOK_TIMEOUT_MS = 10_000
+        private const val FEISHU_MAX_PAYLOAD_BYTES = 20 * 1024
     }
 }

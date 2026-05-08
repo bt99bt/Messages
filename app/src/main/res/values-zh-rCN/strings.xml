@@ -127,13 +127,14 @@
     <string name="auto_forward_clear_history">清空历史</string>
     <string name="auto_forward_no_rules">还没有添加转发规则。</string>
     <string name="auto_forward_no_history">还没有短信被转发。</string>
-    <string name="auto_forward_privacy_notice">Webhook 规则会把命中的短信内容发送到您配置的服务器地址。</string>
+    <string name="auto_forward_privacy_notice">Webhook 规则会把命中的短信内容发送到您配置的飞书机器人地址。</string>
     <string name="auto_forward_keywords_hint">关键词，每行一个</string>
     <string name="auto_forward_regex">正则表达式</string>
     <string name="auto_forward_webhook_url">Webhook 地址</string>
     <string name="auto_forward_match_type">匹配方式：%s</string>
     <string name="auto_forward_destination_type">转发目标：%s</string>
     <string name="auto_forward_sim_policy">SIM 卡：%s</string>
+    <string name="auto_forward_all_match">全部短信</string>
     <string name="auto_forward_keyword_match">关键词</string>
     <string name="auto_forward_regex_match">正则</string>
     <string name="auto_forward_destination_sms">短信</string>

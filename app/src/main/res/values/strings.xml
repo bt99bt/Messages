@@ -126,13 +126,14 @@
     <string name="auto_forward_clear_history">Clear history</string>
     <string name="auto_forward_no_rules">No forwarding rules have been added.</string>
     <string name="auto_forward_no_history">No messages have been forwarded yet.</string>
-    <string name="auto_forward_privacy_notice">Webhook rules send matching message content to the server URL you configure.</string>
+    <string name="auto_forward_privacy_notice">Webhook rules send matching message content to the Feishu bot URL you configure.</string>
     <string name="auto_forward_keywords_hint">Keywords, one per line</string>
     <string name="auto_forward_regex">Regular expression</string>
     <string name="auto_forward_webhook_url">Webhook URL</string>
     <string name="auto_forward_match_type">Match type: %s</string>
     <string name="auto_forward_destination_type">Destination: %s</string>
     <string name="auto_forward_sim_policy">SIM: %s</string>
+    <string name="auto_forward_all_match">All messages</string>
     <string name="auto_forward_keyword_match">Keywords</string>
     <string name="auto_forward_regex_match">Regex</string>
     <string name="auto_forward_destination_sms">SMS</string>

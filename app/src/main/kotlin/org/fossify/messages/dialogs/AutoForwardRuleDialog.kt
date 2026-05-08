@@ -65,6 +65,10 @@ class AutoForwardRuleDialog(
     private fun chooseMatchType() {
         val items = arrayListOf(
             RadioItem(
+                AutoForwardMatchType.ALL.ordinal,
+                activity.getString(R.string.auto_forward_all_match)
+            ),
+            RadioItem(
                 AutoForwardMatchType.KEYWORDS.ordinal,
                 activity.getString(R.string.auto_forward_keyword_match)
             ),
@@ -177,18 +181,21 @@ class AutoForwardRuleDialog(
             activity.toast(R.string.name)
             return null
         }
-        if (matchType == AutoForwardMatchType.KEYWORDS && keywords.isEmpty()) {
-            activity.toast(R.string.auto_forward_missing_matcher)
-            return null
-        }
-        if (matchType == AutoForwardMatchType.REGEX) {
-            if (regex.isEmpty()) {
+        when (matchType) {
+            AutoForwardMatchType.ALL -> Unit
+            AutoForwardMatchType.KEYWORDS -> if (keywords.isEmpty()) {
                 activity.toast(R.string.auto_forward_missing_matcher)
                 return null
             }
-            if (runCatching { Regex(regex) }.isFailure) {
-                activity.toast(R.string.auto_forward_invalid_regex)
-                return null
+            AutoForwardMatchType.REGEX -> {
+                if (regex.isEmpty()) {
+                    activity.toast(R.string.auto_forward_missing_matcher)
+                    return null
+                }
+                if (runCatching { Regex(regex) }.isFailure) {
+                    activity.toast(R.string.auto_forward_invalid_regex)
+                    return null
+                }
             }
         }
         if (destinationType == AutoForwardDestinationType.SMS && phoneNumber.isEmpty()) {
@@ -223,6 +230,7 @@ class AutoForwardRuleDialog(
 
     private fun getMatchTypeText() = activity.getString(
         when (matchType) {
+            AutoForwardMatchType.ALL -> R.string.auto_forward_all_match
             AutoForwardMatchType.KEYWORDS -> R.string.auto_forward_keyword_match
             AutoForwardMatchType.REGEX -> R.string.auto_forward_regex_match
         }

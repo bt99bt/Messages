@@ -19,6 +19,7 @@ data class AutoForwardRule(
 
 @Serializable
 enum class AutoForwardMatchType {
+    ALL,
     KEYWORDS,
     REGEX
 }

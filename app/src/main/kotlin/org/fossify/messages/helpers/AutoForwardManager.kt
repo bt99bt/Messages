@@ -24,6 +24,7 @@ import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
+@Suppress("TooManyFunctions", "TooGenericExceptionCaught", "MagicNumber", "UseCheckOrError")
 class AutoForwardManager(private val context: Context) {
     private val json = Json { encodeDefaults = true }
 

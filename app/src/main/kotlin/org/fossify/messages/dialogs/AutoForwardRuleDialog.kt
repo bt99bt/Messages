@@ -167,6 +167,7 @@ class AutoForwardRuleDialog(
             if (destinationType == AutoForwardDestinationType.WEBHOOK) View.VISIBLE else View.GONE
     }
 
+    @Suppress("ReturnCount")
     private fun buildRule(originalRule: AutoForwardRule?): AutoForwardRule? {
         val name = binding.autoForwardRuleName.value.trim()
         val keywords = binding.autoForwardRuleKeywords.value

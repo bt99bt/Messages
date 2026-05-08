@@ -46,11 +46,19 @@ class ShortcutHelper(private val context: Context) {
 
         val participants = context.getThreadParticipants(conv.threadId, contactsMap)
         val persons: Array<Person> = participants.map { it.toPerson(context) }.toTypedArray()
+        
+        val isRecycleBin = if (!isOnMainThread()) {
+            context.messagesDB.getNonRecycledThreadMessages(conv.threadId).isEmpty() &&
+                context.messagesDB.getThreadMessagesFromRecycleBin(conv.threadId).isNotEmpty()
+        } else {
+            false
+        }
+
         val intent = Intent(context, ThreadActivity::class.java).apply {
             action = Intent.ACTION_VIEW
             putExtra(THREAD_ID, conv.threadId)
             putExtra(THREAD_TITLE, conv.title)
-            putExtra(IS_RECYCLE_BIN, false) // TODO: verify that thread isn't in recycle bin
+            putExtra(IS_RECYCLE_BIN, isRecycleBin)
             putExtra(IS_LAUNCHED_FROM_SHORTCUT, true)
             putExtra(THREAD_NUMBER, conv.phoneNumber.ifEmpty { "unknown_phone_number" })
             addCategory(Intent.CATEGORY_DEFAULT)

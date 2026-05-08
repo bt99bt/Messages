@@ -358,8 +358,14 @@ class MainActivity : SimpleActivity() {
                     )
                 }
                 if (conv != null) {
-                    // FIXME: Scheduled message date is being reset here. Conversations with
-                    //  scheduled messages will have their original date.
+                    val scheduledMessages = messagesDB.getScheduledThreadMessages(conv.threadId)
+                    if (scheduledMessages.isNotEmpty()) {
+                        val newestScheduled = scheduledMessages.maxByOrNull { it.date }
+                        if (newestScheduled != null && newestScheduled.date > conv.date) {
+                            conv.date = newestScheduled.date
+                            conv.snippet = newestScheduled.body
+                        }
+                    }
                     insertOrUpdateConversation(conv)
                 }
             }

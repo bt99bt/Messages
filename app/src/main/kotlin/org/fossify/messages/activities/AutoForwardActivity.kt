@@ -20,6 +20,7 @@ import org.fossify.messages.extensions.config
 import org.fossify.messages.models.AutoForwardHistory
 import org.fossify.messages.models.AutoForwardRule
 
+@Suppress("TooManyFunctions")
 class AutoForwardActivity : SimpleActivity() {
     private val binding by viewBinding(ActivityAutoForwardBinding::inflate)
     private var currentTab = TAB_RULES

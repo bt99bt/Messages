@@ -174,9 +174,15 @@ abstract class MessagesDatabase : RoomDatabase() {
         private val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.apply {
-                    execSQL("CREATE TABLE IF NOT EXISTS `auto_forward_history` (`id` INTEGER NOT NULL PRIMARY KEY, `source_message_id` INTEGER NOT NULL, `source_thread_id` INTEGER NOT NULL, `source_sender` TEXT NOT NULL, `source_body_preview` TEXT NOT NULL, `source_subscription_id` INTEGER NOT NULL, `rule_id` INTEGER NOT NULL, `rule_name` TEXT NOT NULL, `destination_type` TEXT NOT NULL, `destination` TEXT NOT NULL, `sim_policy` TEXT NOT NULL, `used_subscription_id` INTEGER, `matched_text` TEXT NOT NULL, `captures_json` TEXT NOT NULL, `status` TEXT NOT NULL, `error_message` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `finished_at` INTEGER)")
+                    execSQL(
+                        "CREATE TABLE IF NOT EXISTS `auto_forward_history` (`id` INTEGER NOT NULL PRIMARY KEY, " +
+                            "`source_message_id` INTEGER NOT NULL, `source_thread_id` INTEGER NOT NULL, `source_sender` TEXT NOT NULL, " +
+                            "`source_body_preview` TEXT NOT NULL, `source_subscription_id` INTEGER NOT NULL, `rule_id` INTEGER NOT NULL, " +
+                            "`rule_name` TEXT NOT NULL, `destination_type` TEXT NOT NULL, `destination` TEXT NOT NULL, `sim_policy` TEXT NOT NULL, " +
+                            "`used_subscription_id` INTEGER, `matched_text` TEXT NOT NULL, `captures_json` TEXT NOT NULL, `status` TEXT NOT NULL, " +
+                            "`error_message` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `finished_at` INTEGER)"
+                    )
                 }
-            }
-        }
+            }        }
     }
 }

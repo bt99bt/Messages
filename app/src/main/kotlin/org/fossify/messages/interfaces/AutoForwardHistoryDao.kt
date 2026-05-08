@@ -14,7 +14,10 @@ interface AutoForwardHistoryDao {
     @Query("SELECT * FROM auto_forward_history ORDER BY created_at DESC")
     fun getAll(): List<AutoForwardHistory>
 
-    @Query("UPDATE auto_forward_history SET status = :status, error_message = :errorMessage, used_subscription_id = :usedSubscriptionId, finished_at = :finishedAt WHERE id = :id")
+    @Query(
+        "UPDATE auto_forward_history SET status = :status, error_message = :errorMessage, " +
+            "used_subscription_id = :usedSubscriptionId, finished_at = :finishedAt WHERE id = :id"
+    )
     fun updateStatus(
         id: Long,
         status: String,

@@ -19,6 +19,7 @@ import org.fossify.messages.extensions.insertOrUpdateConversation
 import org.fossify.messages.extensions.shouldUnarchive
 import org.fossify.messages.extensions.showReceivedMessageNotification
 import org.fossify.messages.extensions.updateConversationArchivedStatus
+import org.fossify.messages.helpers.AutoForwardManager
 import org.fossify.messages.helpers.ReceiverUtils.isMessageFilteredOut
 import org.fossify.messages.helpers.refreshConversations
 import org.fossify.messages.helpers.refreshMessages
@@ -85,6 +86,16 @@ class MmsReceiver : MmsReceivedReceiver() {
             bitmap = glideBitmap
         )
 
+        AutoForwardManager(context).forwardIncomingSms(
+            messageId = mms.id,
+            threadId = mms.threadId,
+            sender = address.ifBlank { mms.senderPhoneNumber },
+            body = mms.body,
+            receivedAt = mms.millis(),
+            sourceSubscriptionId = mms.subscriptionId,
+            attachmentsSummary = buildAttachmentSummary(mms)
+        )
+
         val conversation = context.getConversations(mms.threadId).firstOrNull() ?: return
         runCatching { context.insertOrUpdateConversation(conversation) }
         if (context.shouldUnarchive()) {
@@ -92,5 +103,27 @@ class MmsReceiver : MmsReceivedReceiver() {
         }
         refreshMessages()
         refreshConversations()
+    }
+
+    private fun buildAttachmentSummary(mms: Message): String {
+        val attachments = mms.attachment?.attachments.orEmpty()
+        if (attachments.isEmpty()) {
+            return ""
+        }
+
+        val imageCount = attachments.count { it.mimetype.startsWith("image/", ignoreCase = true) }
+        val videoCount = attachments.count { it.mimetype.startsWith("video/", ignoreCase = true) }
+        val otherCount = attachments.size - imageCount - videoCount
+        return buildList {
+            if (imageCount > 0) {
+                add("图片 ${imageCount} 个")
+            }
+            if (videoCount > 0) {
+                add("视频 ${videoCount} 个")
+            }
+            if (otherCount > 0) {
+                add("其他附件 ${otherCount} 个")
+            }
+        }.joinToString("，")
     }
 }

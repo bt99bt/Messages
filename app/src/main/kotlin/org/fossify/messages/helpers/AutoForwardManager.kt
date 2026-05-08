@@ -20,6 +20,9 @@ import org.fossify.messages.models.AutoForwardSimPolicy
 import java.io.OutputStreamWriter
 import java.net.HttpURLConnection
 import java.net.URL
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
 
 class AutoForwardManager(private val context: Context) {
     private val json = Json { encodeDefaults = true }
@@ -30,7 +33,8 @@ class AutoForwardManager(private val context: Context) {
         sender: String,
         body: String,
         receivedAt: Long,
-        sourceSubscriptionId: Int
+        sourceSubscriptionId: Int,
+        attachmentsSummary: String = ""
     ) {
         context.config.autoForwardRules
             .filter { it.enabled }
@@ -44,7 +48,8 @@ class AutoForwardManager(private val context: Context) {
                     sender = sender,
                     body = body,
                     receivedAt = receivedAt,
-                    sourceSubscriptionId = sourceSubscriptionId
+                    sourceSubscriptionId = sourceSubscriptionId,
+                    attachmentsSummary = attachmentsSummary
                 )
             }
     }
@@ -81,7 +86,8 @@ class AutoForwardManager(private val context: Context) {
         sender: String,
         body: String,
         receivedAt: Long,
-        sourceSubscriptionId: Int
+        sourceSubscriptionId: Int,
+        attachmentsSummary: String
     ) {
         val historyId = generateRandomId()
         val destination = when (rule.destinationType) {
@@ -93,7 +99,7 @@ class AutoForwardManager(private val context: Context) {
             sourceMessageId = messageId,
             sourceThreadId = threadId,
             sourceSender = sender,
-            sourceBodyPreview = body.take(AUTO_FORWARD_BODY_PREVIEW_LENGTH),
+            sourceBodyPreview = body.ifBlank { attachmentsSummary }.take(AUTO_FORWARD_BODY_PREVIEW_LENGTH),
             sourceSubscriptionId = sourceSubscriptionId,
             ruleId = rule.id,
             ruleName = rule.name,
@@ -117,18 +123,17 @@ class AutoForwardManager(private val context: Context) {
                 sender = sender,
                 body = body,
                 receivedAt = receivedAt,
-                sourceSubscriptionId = sourceSubscriptionId
+                sourceSubscriptionId = sourceSubscriptionId,
+                attachmentsSummary = attachmentsSummary
             )
 
             AutoForwardDestinationType.WEBHOOK -> forwardWebhook(
                 rule = rule,
-                matchResult = matchResult,
                 historyId = historyId,
-                messageId = messageId,
-                threadId = threadId,
                 sender = sender,
                 body = body,
-                receivedAt = receivedAt
+                receivedAt = receivedAt,
+                attachmentsSummary = attachmentsSummary
             )
         }
     }
@@ -139,12 +144,13 @@ class AutoForwardManager(private val context: Context) {
         sender: String,
         body: String,
         receivedAt: Long,
-        sourceSubscriptionId: Int
+        sourceSubscriptionId: Int,
+        attachmentsSummary: String
     ) {
         var usedSubscriptionId: Int? = null
         try {
             usedSubscriptionId = resolveSubscriptionId(rule, sourceSubscriptionId)
-            val forwardedText = "From: $sender\nTime: $receivedAt\n\n$body"
+            val forwardedText = buildForwardedSmsText(sender, body, receivedAt, attachmentsSummary)
             context.sendMessageCompat(
                 text = forwardedText,
                 addresses = listOf(rule.phoneNumber),
@@ -164,23 +170,18 @@ class AutoForwardManager(private val context: Context) {
 
     private fun forwardWebhook(
         rule: AutoForwardRule,
-        matchResult: MatchResult,
         historyId: Long,
-        messageId: Long,
-        threadId: Long,
         sender: String,
         body: String,
-        receivedAt: Long
+        receivedAt: Long,
+        attachmentsSummary: String
     ) {
         try {
             val payload = buildFeishuPostPayload(
-                rule = rule,
-                matchResult = matchResult,
-                messageId = messageId,
-                threadId = threadId,
                 sender = sender,
                 body = body,
-                receivedAt = receivedAt
+                receivedAt = receivedAt,
+                attachmentsSummary = attachmentsSummary
             )
             if (payload.toByteArray(Charsets.UTF_8).size > FEISHU_MAX_PAYLOAD_BYTES) {
                 throw IllegalStateException("Feishu payload exceeds 20 KB")
@@ -198,13 +199,10 @@ class AutoForwardManager(private val context: Context) {
     }
 
     private fun buildFeishuPostPayload(
-        rule: AutoForwardRule,
-        matchResult: MatchResult,
-        messageId: Long,
-        threadId: Long,
         sender: String,
         body: String,
-        receivedAt: Long
+        receivedAt: Long,
+        attachmentsSummary: String
     ): String {
         return buildJsonObject {
             put("msg_type", "post")
@@ -221,27 +219,44 @@ class AutoForwardManager(private val context: Context) {
                                     put(
                                         "content",
                                         buildJsonArray {
-                                            addPostLine("规则：", rule.name)
                                             addPostLine("发件人：", sender)
-                                            addPostLine("接收时间：", receivedAt.toString())
-                                            addPostLine("会话 ID：", threadId.toString())
-                                            addPostLine("短信 ID：", messageId.toString())
-                                            if (matchResult.matchedText.isNotEmpty()) {
-                                                addPostLine("命中内容：", matchResult.matchedText)
+                                            addPostLine("时间：", formatReceivedAt(receivedAt))
+                                            if (body.isNotBlank()) {
+                                                add(
+                                                    buildJsonArray {
+                                                        add(textElement("内容："))
+                                                    }
+                                                )
+                                                add(
+                                                    buildJsonArray {
+                                                        add(textElement(body.take(FEISHU_MAX_BODY_CHARS)))
+                                                    }
+                                                )
                                             }
-                                            if (matchResult.captures.isNotEmpty()) {
-                                                addPostLine("捕获组：", matchResult.captures.joinToString(", "))
+                                            if (attachmentsSummary.isNotBlank()) {
+                                                add(
+                                                    buildJsonArray {
+                                                        add(textElement("附件："))
+                                                    }
+                                                )
+                                                add(
+                                                    buildJsonArray {
+                                                        add(textElement(attachmentsSummary))
+                                                    }
+                                                )
                                             }
-                                            add(
-                                                buildJsonArray {
-                                                    add(textElement("短信内容："))
-                                                }
-                                            )
-                                            add(
-                                                buildJsonArray {
-                                                    add(textElement(body.take(FEISHU_MAX_BODY_CHARS)))
-                                                }
-                                            )
+                                            if (body.isBlank() && attachmentsSummary.isBlank()) {
+                                                add(
+                                                    buildJsonArray {
+                                                        add(textElement("内容："))
+                                                    }
+                                                )
+                                                add(
+                                                    buildJsonArray {
+                                                        add(textElement("(无文本内容)"))
+                                                    }
+                                                )
+                                            }
                                         }
                                     )
                                 }
@@ -251,6 +266,32 @@ class AutoForwardManager(private val context: Context) {
                 }
             )
         }.toString()
+    }
+
+    private fun buildForwardedSmsText(
+        sender: String,
+        body: String,
+        receivedAt: Long,
+        attachmentsSummary: String
+    ): String {
+        return buildString {
+            appendLine("From: $sender")
+            appendLine("Time: ${formatReceivedAt(receivedAt)}")
+            appendLine()
+            if (body.isNotBlank()) {
+                appendLine(body)
+            }
+            if (attachmentsSummary.isNotBlank()) {
+                if (body.isNotBlank()) {
+                    appendLine()
+                }
+                append("Attachments: $attachmentsSummary")
+            }
+        }
+    }
+
+    private fun formatReceivedAt(receivedAt: Long): String {
+        return SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(Date(receivedAt))
     }
 
     private fun kotlinx.serialization.json.JsonArrayBuilder.addPostLine(

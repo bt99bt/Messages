@@ -15,6 +15,7 @@ import org.fossify.commons.helpers.isOnMainThread
 import org.fossify.commons.models.SimpleContact
 import org.fossify.messages.activities.ThreadActivity
 import org.fossify.messages.extensions.conversationsDB
+import org.fossify.messages.extensions.messagesDB
 import org.fossify.messages.extensions.getThreadParticipants
 import org.fossify.messages.extensions.toPerson
 import org.fossify.messages.models.Conversation

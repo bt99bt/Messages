@@ -3,11 +3,19 @@ package org.fossify.messages.helpers
 import android.content.Context
 import org.fossify.commons.helpers.BaseConfig
 import org.fossify.messages.extensions.getDefaultKeyboardHeight
+import org.fossify.messages.models.AutoForwardRule
 import org.fossify.messages.models.Conversation
+import kotlinx.serialization.builtins.ListSerializer
+import kotlinx.serialization.json.Json
 
 class Config(context: Context) : BaseConfig(context) {
     companion object {
         fun newInstance(context: Context) = Config(context)
+    }
+
+    private val json = Json {
+        ignoreUnknownKeys = true
+        encodeDefaults = true
     }
 
     fun saveUseSIMIdAtNumber(number: String, SIMId: Int) {
@@ -148,4 +156,31 @@ class Config(context: Context) : BaseConfig(context) {
         get() = prefs.getBoolean(KEEP_CONVERSATIONS_ARCHIVED, false)
         set(keepConversationsArchived) = prefs.edit()
             .putBoolean(KEEP_CONVERSATIONS_ARCHIVED, keepConversationsArchived).apply()
+
+    var autoForwardRules: List<AutoForwardRule>
+        get() {
+            val serializedRules = prefs.getString(AUTO_FORWARD_RULES, "[]") ?: "[]"
+            return try {
+                json.decodeFromString(ListSerializer(AutoForwardRule.serializer()), serializedRules)
+            } catch (_: Exception) {
+                emptyList()
+            }
+        }
+        set(autoForwardRules) {
+            val serializedRules = json.encodeToString(
+                ListSerializer(AutoForwardRule.serializer()),
+                autoForwardRules
+            )
+            prefs.edit().putString(AUTO_FORWARD_RULES, serializedRules).apply()
+        }
+
+    fun addOrUpdateAutoForwardRule(rule: AutoForwardRule) {
+        autoForwardRules = autoForwardRules
+            .filterNot { it.id == rule.id }
+            .plus(rule)
+    }
+
+    fun removeAutoForwardRule(ruleId: Long) {
+        autoForwardRules = autoForwardRules.filterNot { it.id == ruleId }
+    }
 }

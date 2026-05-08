@@ -61,6 +61,7 @@ import org.fossify.messages.helpers.NotificationHelper
 import org.fossify.messages.helpers.ShortcutHelper
 import org.fossify.messages.helpers.generateRandomId
 import org.fossify.messages.interfaces.AttachmentsDao
+import org.fossify.messages.interfaces.AutoForwardHistoryDao
 import org.fossify.messages.interfaces.ConversationsDao
 import org.fossify.messages.interfaces.DraftsDao
 import org.fossify.messages.interfaces.MessageAttachmentsDao
@@ -99,6 +100,9 @@ val Context.messagesDB: MessagesDao
 
 val Context.draftsDB: DraftsDao
     get() = getMessagesDB().DraftsDao()
+
+val Context.autoForwardHistoryDB: AutoForwardHistoryDao
+    get() = getMessagesDB().AutoForwardHistoryDao()
 
 val Context.notificationHelper
     get() = NotificationHelper(this)

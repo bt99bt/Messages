@@ -106,6 +106,7 @@ class SettingsActivity : SimpleActivity() {
         setupLanguage()
         setupManageBlockedNumbers()
         setupManageBlockedKeywords()
+        setupAutoForward()
         setupChangeDateTimeFormat()
         setupFontSize()
         setupShowCharacterCounter()
@@ -226,6 +227,14 @@ class SettingsActivity : SimpleActivity() {
                 }
             } else {
                 FeatureLockedDialog(this@SettingsActivity) { }
+            }
+        }
+    }
+
+    private fun setupAutoForward() = binding.apply {
+        settingsAutoForwardHolder.setOnClickListener {
+            Intent(this@SettingsActivity, AutoForwardActivity::class.java).apply {
+                startActivity(this)
             }
         }
     }

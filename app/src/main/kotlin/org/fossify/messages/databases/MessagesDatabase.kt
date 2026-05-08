@@ -10,11 +10,13 @@ import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import org.fossify.messages.helpers.Converters
 import org.fossify.messages.interfaces.AttachmentsDao
+import org.fossify.messages.interfaces.AutoForwardHistoryDao
 import org.fossify.messages.interfaces.ConversationsDao
 import org.fossify.messages.interfaces.DraftsDao
 import org.fossify.messages.interfaces.MessageAttachmentsDao
 import org.fossify.messages.interfaces.MessagesDao
 import org.fossify.messages.models.Attachment
+import org.fossify.messages.models.AutoForwardHistory
 import org.fossify.messages.models.Conversation
 import org.fossify.messages.models.Draft
 import org.fossify.messages.models.Message
@@ -28,9 +30,10 @@ import org.fossify.messages.models.RecycleBinMessage
         MessageAttachment::class,
         Message::class,
         RecycleBinMessage::class,
-        Draft::class
+        Draft::class,
+        AutoForwardHistory::class
     ],
-    version = 10
+    version = 11
 )
 @TypeConverters(Converters::class)
 abstract class MessagesDatabase : RoomDatabase() {
@@ -44,6 +47,8 @@ abstract class MessagesDatabase : RoomDatabase() {
     abstract fun MessagesDao(): MessagesDao
 
     abstract fun DraftsDao(): DraftsDao
+
+    abstract fun AutoForwardHistoryDao(): AutoForwardHistoryDao
 
     companion object {
         private var db: MessagesDatabase? = null
@@ -67,6 +72,7 @@ abstract class MessagesDatabase : RoomDatabase() {
                             .addMigrations(MIGRATION_7_8)
                             .addMigrations(MIGRATION_8_9)
                             .addMigrations(MIGRATION_9_10)
+                            .addMigrations(MIGRATION_10_11)
                             .build()
                     }
                 }
@@ -161,6 +167,14 @@ abstract class MessagesDatabase : RoomDatabase() {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.apply {
                     execSQL("ALTER TABLE conversations ADD COLUMN unread_count INTEGER NOT NULL DEFAULT 0")
+                }
+            }
+        }
+
+        private val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.apply {
+                    execSQL("CREATE TABLE IF NOT EXISTS `auto_forward_history` (`id` INTEGER NOT NULL PRIMARY KEY, `source_message_id` INTEGER NOT NULL, `source_thread_id` INTEGER NOT NULL, `source_sender` TEXT NOT NULL, `source_body_preview` TEXT NOT NULL, `source_subscription_id` INTEGER NOT NULL, `rule_id` INTEGER NOT NULL, `rule_name` TEXT NOT NULL, `destination_type` TEXT NOT NULL, `destination` TEXT NOT NULL, `sim_policy` TEXT NOT NULL, `used_subscription_id` INTEGER, `matched_text` TEXT NOT NULL, `captures_json` TEXT NOT NULL, `status` TEXT NOT NULL, `error_message` TEXT NOT NULL, `created_at` INTEGER NOT NULL, `finished_at` INTEGER)")
                 }
             }
         }

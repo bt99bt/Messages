@@ -5,6 +5,7 @@ import android.content.Context
 import android.telephony.SmsManager
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.buildJsonArray
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 import org.fossify.messages.extensions.autoForwardHistoryDB
@@ -172,7 +173,7 @@ class AutoForwardManager(private val context: Context) {
         receivedAt: Long
     ) {
         try {
-            val payload = buildFeishuTextPayload(
+            val payload = buildFeishuPostPayload(
                 rule = rule,
                 matchResult = matchResult,
                 messageId = messageId,
@@ -196,7 +197,7 @@ class AutoForwardManager(private val context: Context) {
         }
     }
 
-    private fun buildFeishuTextPayload(
+    private fun buildFeishuPostPayload(
         rule: AutoForwardRule,
         matchResult: MatchResult,
         messageId: Long,
@@ -205,32 +206,68 @@ class AutoForwardManager(private val context: Context) {
         body: String,
         receivedAt: Long
     ): String {
-        val text = buildString {
-            appendLine("短信自动转发")
-            appendLine("规则：${rule.name}")
-            appendLine("发件人：$sender")
-            appendLine("接收时间：$receivedAt")
-            appendLine("会话 ID：$threadId")
-            appendLine("短信 ID：$messageId")
-            if (matchResult.matchedText.isNotEmpty()) {
-                appendLine("命中内容：${matchResult.matchedText}")
-            }
-            if (matchResult.captures.isNotEmpty()) {
-                appendLine("捕获组：${matchResult.captures.joinToString(", ")}")
-            }
-            appendLine()
-            append(body)
-        }
-
         return buildJsonObject {
-            put("msg_type", "text")
+            put("msg_type", "post")
             put(
                 "content",
                 buildJsonObject {
-                    put("text", text)
+                    put(
+                        "post",
+                        buildJsonObject {
+                            put(
+                                "zh_cn",
+                                buildJsonObject {
+                                    put("title", "短信自动转发")
+                                    put(
+                                        "content",
+                                        buildJsonArray {
+                                            addPostLine("规则：", rule.name)
+                                            addPostLine("发件人：", sender)
+                                            addPostLine("接收时间：", receivedAt.toString())
+                                            addPostLine("会话 ID：", threadId.toString())
+                                            addPostLine("短信 ID：", messageId.toString())
+                                            if (matchResult.matchedText.isNotEmpty()) {
+                                                addPostLine("命中内容：", matchResult.matchedText)
+                                            }
+                                            if (matchResult.captures.isNotEmpty()) {
+                                                addPostLine("捕获组：", matchResult.captures.joinToString(", "))
+                                            }
+                                            add(
+                                                buildJsonArray {
+                                                    add(textElement("短信内容："))
+                                                }
+                                            )
+                                            add(
+                                                buildJsonArray {
+                                                    add(textElement(body.take(FEISHU_MAX_BODY_CHARS)))
+                                                }
+                                            )
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    )
                 }
             )
         }.toString()
+    }
+
+    private fun kotlinx.serialization.json.JsonArrayBuilder.addPostLine(
+        label: String,
+        value: String
+    ) {
+        add(
+            buildJsonArray {
+                add(textElement(label))
+                add(textElement(value))
+            }
+        )
+    }
+
+    private fun textElement(text: String) = buildJsonObject {
+        put("tag", "text")
+        put("text", text)
     }
 
     @SuppressLint("MissingPermission")
@@ -290,5 +327,6 @@ class AutoForwardManager(private val context: Context) {
     companion object {
         private const val WEBHOOK_TIMEOUT_MS = 10_000
         private const val FEISHU_MAX_PAYLOAD_BYTES = 20 * 1024
+        private const val FEISHU_MAX_BODY_CHARS = 12_000
     }
 }

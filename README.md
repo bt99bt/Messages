@@ -23,7 +23,7 @@
 - 通过关键词匹配短信正文，关键词支持多行配置，任意命中即触发。
 - 通过正则表达式匹配短信正文，并记录捕获组。
 - 转发目标支持另一个手机号。
-- 转发目标支持飞书自定义机器人 webhook，使用 `POST application/json` 发送文本消息。
+- 转发目标支持飞书自定义机器人 webhook，使用 `POST application/json` 发送富文本消息。
 - 支持双卡策略：
   - 使用接收短信的 SIM 卡转发。
   - 使用系统默认短信 SIM 卡转发。
@@ -32,15 +32,35 @@
 - 自动记录转发历史，可查看短信来源、命中的规则、转发目标、使用的 SIM、转发状态和失败原因。
 - 历史记录保存在本机 Room 数据库中，不做云端同步。
 
-### 飞书机器人 Webhook JSON 格式
+### 飞书机器人 Webhook 富文本格式
 
-Webhook 规则命中后，请求体使用飞书自定义机器人文本消息格式：
+Webhook 规则命中后，请求体使用飞书自定义机器人富文本 `post` 消息格式：
 
 ```json
 {
-  "msg_type": "text",
+  "msg_type": "post",
   "content": {
-    "text": "短信自动转发\n规则：验证码转发\n发件人：+10000000000\n接收时间：1770000000000\n会话 ID：1\n短信 ID：100\n命中内容：123456\n\nYour verification code is 123456"
+    "post": {
+      "zh_cn": {
+        "title": "短信自动转发",
+        "content": [
+          [
+            { "tag": "text", "text": "规则：" },
+            { "tag": "text", "text": "验证码转发" }
+          ],
+          [
+            { "tag": "text", "text": "发件人：" },
+            { "tag": "text", "text": "+10000000000" }
+          ],
+          [
+            { "tag": "text", "text": "短信内容：" }
+          ],
+          [
+            { "tag": "text", "text": "Your verification code is 123456" }
+          ]
+        ]
+      }
+    }
   }
 }
 ```

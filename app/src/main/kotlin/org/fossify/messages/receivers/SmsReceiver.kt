@@ -12,7 +12,6 @@ import org.fossify.commons.helpers.SimpleContactsHelper
 import org.fossify.commons.helpers.ensureBackgroundThread
 import org.fossify.commons.models.PhoneNumber
 import org.fossify.commons.models.SimpleContact
-import org.fossify.messages.extensions.getConversations
 import org.fossify.messages.extensions.getNameFromAddress
 import org.fossify.messages.extensions.getNotificationBitmap
 import org.fossify.messages.extensions.getThreadId
@@ -26,6 +25,7 @@ import org.fossify.messages.helpers.AutoForwardManager
 import org.fossify.messages.helpers.ReceiverUtils.isMessageFilteredOut
 import org.fossify.messages.helpers.refreshConversations
 import org.fossify.messages.helpers.refreshMessages
+import org.fossify.messages.models.Conversation
 import org.fossify.messages.models.Message
 
 class SmsReceiver : BroadcastReceiver() {
@@ -101,13 +101,23 @@ class SmsReceiver : BroadcastReceiver() {
             subscriptionId = subscriptionId
         )
 
-        context.getConversations(threadId).firstOrNull()?.let { conv ->
-            runCatching { context.insertOrUpdateConversation(conv) }
-        }
-
         val senderName = context.getMyContactsCursor(favoritesOnly = false, withPhoneNumbersOnly = true).use {
             context.getNameFromAddress(address, it)
         }
+
+        val newConversation = Conversation(
+            threadId = threadId,
+            snippet = body,
+            date = (date / 1000).toInt(),
+            read = false,
+            title = senderName.ifEmpty { address },
+            photoUri = photoUri,
+            isGroupConversation = false,
+            phoneNumber = address,
+            isArchived = false,
+            unreadCount = 1,
+        )
+        runCatching { context.insertOrUpdateConversation(newConversation) }
 
         val participant = SimpleContact(
             rawId = 0,

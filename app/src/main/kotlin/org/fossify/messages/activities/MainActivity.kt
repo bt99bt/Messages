@@ -332,7 +332,10 @@ class MainActivity : SimpleActivity() {
                 val isTemporaryThread = cachedConversation.isScheduled
                 val isConversationDeleted = !conversations.map { it.threadId }.contains(threadId)
                 if (isConversationDeleted && !isTemporaryThread) {
-                    conversationsDB.deleteThreadId(threadId)
+                    val hasLocalMessages = messagesDB.getThreadMessages(threadId).isNotEmpty()
+                    if (!hasLocalMessages) {
+                        conversationsDB.deleteThreadId(threadId)
+                    }
                 }
 
                 val newConversation =
